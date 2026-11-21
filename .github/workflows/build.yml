@@ -1,0 +1,42 @@
+name: Build APK
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Unpack ZIP
+        run: |
+          for f in *.zip; do unzip -o "$f" -d unpacked; done
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Download Three.js
+        run: |
+          mkdir -p unpacked/ApexVelocity3D/app/src/main/assets
+          curl -fsSL https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js -o unpacked/ApexVelocity3D/app/src/main/assets/three.min.js \
+            || curl -fsSL https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js -o unpacked/ApexVelocity3D/app/src/main/assets/three.min.js
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+
+      - name: Build APK
+        working-directory: unpacked/ApexVelocity3D
+        run: |
+          gradle assembleDebug --no-daemon
+          cp app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/debug/ApexVelocity3D-Pixel10Pro.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ApexVelocity3D-Pixel10Pro-APK
+          path: unpacked/ApexVelocity3D/app/build/outputs/apk/debug/ApexVelocity3D-Pixel10Pro.apk
+          
